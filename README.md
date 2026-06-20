@@ -1,5 +1,11 @@
 ![AI Market Intelligence Dashboard](assets/hero-banner.png)
 
+![HTML5](https://img.shields.io/badge/HTML5-Dashboard-orange)
+![JavaScript](https://img.shields.io/badge/JavaScript-Interactive-yellow)
+![Business Intelligence](https://img.shields.io/badge/Business-Intelligence-blue)
+![Analytics](https://img.shields.io/badge/Data-Analytics-green)
+![GitHub Pages](https://img.shields.io/badge/Live-GitHub%20Pages-success)
+
 # AI Market Intelligence Dashboard 2026
 
 Executive Analytics Platform for Comparative Evaluation of Leading Generative AI Systems
