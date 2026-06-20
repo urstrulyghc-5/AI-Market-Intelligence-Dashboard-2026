@@ -1,3 +1,5 @@
+![AI Market Intelligence Dashboard](assets/png-banner.png)
+
 # AI Market Intelligence Dashboard 2026
 
 Executive Analytics Platform for Comparative Evaluation of Leading Generative AI Systems
