@@ -1,4 +1,14 @@
-![AI Market Intelligence Dashboard](assets/png-banner.png)
+![AI Market Intelligence Dashboard](assets/hero-banner.png)
+
+# AI Market Intelligence Dashboard 2026
+
+Executive Analytics Platform for Comparative Evaluation of Leading Generative AI Systems
+
+## Live Dashboard
+
+[Open Live Dashboard](https://urstrulyghc-5.github.io/AI-Market-Intelligence-Dashboard-2026/)
+
+---
 
 # AI Market Intelligence Dashboard 2026
 
