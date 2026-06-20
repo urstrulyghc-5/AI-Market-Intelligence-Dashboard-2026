@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Agent Comparison 2026 — 3D Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0b0f;--bg2:#111318;--bg3:#1a1d26;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.14);
+  --text:#f0f2f8;--text2:#8b90a0;--text3:#555a6e;
+  --radius:14px;--radius-sm:8px;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.6;min-height:100vh;overflow-x:hidden}
+
+/* HEADER */
+.header{background:linear-gradient(135deg,#0d1117 0%,#161b2e 50%,#0d1117 100%);border-bottom:1px solid var(--border2);padding:28px 32px 24px;position:relative;overflow:hidden}
+.header::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 80% at 80% 50%,rgba(99,102,241,0.12),transparent);pointer-events:none}
+.header-inner{max-width:1400px;margin:0 auto;position:relative}
+.header h1{font-size:28px;font-weight:700;letter-spacing:-0.5px;background:linear-gradient(135deg,#fff 0%,#a5b4fc 60%,#818cf8 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.header p{color:var(--text2);font-size:13px;margin-top:4px}
+.header-meta{display:flex;gap:16px;margin-top:16px;flex-wrap:wrap}
+.meta-pill{background:rgba(255,255,255,0.05);border:1px solid var(--border2);border-radius:20px;padding:4px 14px;font-size:12px;color:var(--text2)}
+.meta-pill span{color:var(--text);font-weight:600}
+
+/* LAYOUT */
+.main{max-width:1400px;margin:0 auto;padding:28px 32px}
+
+/* TABS */
+.tabs{display:flex;gap:6px;margin-bottom:28px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:6px;flex-wrap:wrap}
+.tab{padding:8px 20px;font-size:13px;font-weight:500;border:none;border-radius:var(--radius-sm);cursor:pointer;background:transparent;color:var(--text2);transition:all 0.2s}
+.tab:hover{color:var(--text);background:rgba(255,255,255,0.05)}
+.tab.active{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;box-shadow:0 4px 14px rgba(99,102,241,0.35)}
+
+/* SECTIONS */
+.section{display:none}
+.section.active{display:block;animation:fadeIn 0.3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* KPI */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px}
+.kpi{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;position:relative;overflow:hidden;transition:border-color 0.2s}
+.kpi:hover{border-color:var(--border2)}
+.kpi::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:var(--radius) var(--radius) 0 0}
+.kpi.c1::after{background:linear-gradient(90deg,#6366f1,#8b5cf6)}
+.kpi.c2::after{background:linear-gradient(90deg,#10b981,#06b6d4)}
+.kpi.c3::after{background:linear-gradient(90deg,#f59e0b,#ef4444)}
+.kpi.c4::after{background:linear-gradient(90deg,#ec4899,#f43f5e)}
+.kpi-label{font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);margin-bottom:8px}
+.kpi-val{font-size:26px;font-weight:700;color:var(--text);line-height:1}
+.kpi-sub{font-size:11px;color:var(--text2);margin-top:4px}
+
+/* CARDS */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:20px 22px}
+.card-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px}
+.card-sub{font-size:12px;color:var(--text2);margin-bottom:16px}
+
+/* 3D RADAR */
+.radar-layout{display:grid;grid-template-columns:1fr 300px;gap:16px;margin-bottom:24px}
+@media(max-width:900px){.radar-layout{grid-template-columns:1fr}}
+#radar3d-container{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;position:relative;height:520px}
+#radar3d-canvas{display:block;width:100%!important;height:100%!important}
+.radar-controls{display:flex;flex-direction:column;gap:8px}
+.ai-toggle{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:all 0.2s;user-select:none}
+.ai-toggle:hover{border-color:var(--border2)}
+.ai-toggle.off{opacity:0.3}
+.toggle-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.toggle-name{font-size:13px;font-weight:500;color:var(--text);flex:1}
+.toggle-score{font-size:12px;color:var(--text2)}
+.radar-hint{font-size:11px;color:var(--text3);text-align:center;margin-top:4px}
+
+/* AI CARDS */
+.ai-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:24px}
+.ai-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;transition:all 0.2s;position:relative;overflow:hidden}
+.ai-card:hover{transform:translateY(-2px);border-color:var(--border2);box-shadow:0 8px 32px rgba(0,0,0,0.4)}
+.ai-header{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.ai-avatar{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0}
+.ai-name-block .name{font-size:14px;font-weight:600;color:var(--text)}
+.ai-name-block .maker{font-size:11px;color:var(--text3)}
+.score-overall{font-size:28px;font-weight:800;margin-bottom:12px}
+.dim-bar{margin-bottom:6px}
+.dim-row{display:flex;justify-content:space-between;margin-bottom:3px}
+.dim-label{font-size:10px;color:var(--text3)}
+.dim-num{font-size:10px;font-weight:600;color:var(--text2)}
+.bar-bg{height:3px;background:rgba(255,255,255,0.06);border-radius:2px}
+.bar-fill{height:3px;border-radius:2px;transition:width 0.8s cubic-bezier(.4,0,.2,1)}
+.badges{display:flex;flex-wrap:wrap;gap:4px;margin-top:10px}
+.badge{font-size:10px;padding:2px 7px;border-radius:4px;font-weight:500}
+
+/* CHART GRID */
+.chart-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+@media(max-width:700px){.chart-grid-2{grid-template-columns:1fr}}
+.chart-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:20px 22px}
+
+/* FEATURE TABLE */
+.table-wrap{overflow-x:auto;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius)}
+table{width:100%;border-collapse:collapse}
+thead th{padding:12px 14px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);border-bottom:1px solid var(--border);white-space:nowrap;text-align:left}
+tbody td{padding:10px 14px;font-size:12px;color:var(--text2);border-bottom:1px solid var(--border);white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:rgba(255,255,255,0.02)}
+.check{color:#10b981;font-size:15px}
+.cross{color:#ef4444;font-size:15px}
+.feat-name{color:var(--text);font-weight:500}
+
+/* SLIDERS */
+.slider-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 24px;margin-bottom:20px}
+@media(max-width:600px){.slider-grid{grid-template-columns:1fr}}
+.slider-row{display:flex;align-items:center;gap:12px}
+.slider-row label{font-size:12px;color:var(--text2);width:80px;flex-shrink:0}
+.slider-row input[type=range]{flex:1;-webkit-appearance:none;height:4px;border-radius:2px;background:var(--bg3);outline:none;cursor:pointer}
+.slider-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);cursor:pointer;box-shadow:0 2px 8px rgba(99,102,241,0.5)}
+.slider-val{font-size:13px;font-weight:700;color:var(--text);width:20px;text-align:right}
+.podium{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.podium-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center}
+.podium-rank{font-size:24px;margin-bottom:4px}
+.podium-name{font-size:15px;font-weight:700}
+.podium-score{font-size:12px;color:var(--text2);margin-top:2px}
+
+/* USE CASE */
+.use-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px}
+.use-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 14px}
+.use-icon{font-size:22px;margin-bottom:8px}
+.use-title{font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px}
+.use-best{font-size:11px;color:var(--text2)}
+.use-best strong{color:#a5b4fc}
+.sw-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.sw-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px}
+.sw-name{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px}
+.sw-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.sw-sec{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px}
+.sw-text{font-size:11px;color:var(--text2);line-height:1.5;margin-bottom:8px}
+
+/* PRICING */
+.price-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:24px}
+.price-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:18px}
+.price-name{font-size:14px;font-weight:600;color:var(--text);margin-bottom:2px}
+.price-maker{font-size:11px;color:var(--text3);margin-bottom:14px}
+.price-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px}
+.price-row:last-child{border-bottom:none}
+.price-row .lbl{color:var(--text2)}
+.price-row .val{color:var(--text);font-weight:500}
+.pill{display:inline-block;padding:1px 8px;border-radius:20px;font-size:10px;font-weight:600}
+.pill-green{background:rgba(16,185,129,0.15);color:#10b981}
+.pill-purple{background:rgba(139,92,246,0.15);color:#a78bfa}
+
+/* NEW 2026 BADGE */
+.badge-2026{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:700;margin-left:6px;vertical-align:middle}
+
+/* MISC */
+.live-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#10b981;margin-right:5px;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.3)}}
+.section-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);margin-bottom:12px}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:3px}
+.trend-up{color:#10b981;font-size:10px;font-weight:700}
+.trend-new{color:#f59e0b;font-size:10px;font-weight:700}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <h1>AI Agent Comparison Dashboard <span class="badge-2026">2026</span></h1>
+    <p>Live 3D interactive benchmarks — ChatGPT · Gemini · Perplexity · Grok · Claude · Copilot</p>
+    <div class="header-meta">
+      <div class="meta-pill"><span>6</span> AI platforms</div>
+      <div class="meta-pill"><span>6</span> scored dimensions</div>
+      <div class="meta-pill"><span><span class="live-dot"></span>Live</span> 3D radar</div>
+      <div class="meta-pill">Data: <span>June 2026</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="tabs">
+    <button class="tab active" onclick="goTab('overview')">Overview</button>
+    <button class="tab" onclick="goTab('radar3d')">3D Radar</button>
+    <button class="tab" onclick="goTab('scores')">Performance</button>
+    <button class="tab" onclick="goTab('features')">Features</button>
+    <button class="tab" onclick="goTab('usecases')">Use Cases</button>
+    <button class="tab" onclick="goTab('pricing')">Pricing</button>
+    <button class="tab" onclick="goTab('custom')">Custom Compare</button>
+  </div>
+
+  <!-- OVERVIEW -->
+  <div id="tab-overview" class="section active">
+    <div class="kpi-grid">
+      <div class="kpi c1"><div class="kpi-label">Top overall 2026</div><div class="kpi-val">Claude</div><div class="kpi-sub">Score: 93 / 100</div></div>
+      <div class="kpi c2"><div class="kpi-label">Biggest leap</div><div class="kpi-val">Gemini</div><div class="kpi-sub">+8 pts vs 2025</div></div>
+      <div class="kpi c3"><div class="kpi-label">Best for research</div><div class="kpi-val">Perplexity</div><div class="kpi-sub">Deep Research mode</div></div>
+      <div class="kpi c4"><div class="kpi-label">Best coding 2026</div><div class="kpi-val">Claude</div><div class="kpi-sub">Score: 95 / 100</div></div>
+    </div>
+    <div class="section-label">All AI agents — 2026 scores</div>
+    <div class="ai-grid" id="overview-cards"></div>
+    <div class="section-label">Overall ranking 2026</div>
+    <div class="card">
+      <div class="card-title">Composite score — all dimensions equally weighted</div>
+      <div class="card-sub">Scale 60–100 · June 2026 benchmarks</div>
+      <div style="position:relative;height:280px"><canvas id="overviewBar" role="img" aria-label="Bar chart of overall 2026 AI scores.">Claude 93, ChatGPT 90, Gemini 89, Copilot 85, Grok 83, Perplexity 81.</canvas></div>
+    </div>
+  </div>
+
+  <!-- 3D RADAR -->
+  <div id="tab-radar3d" class="section">
+    <div class="section-label"><span class="live-dot"></span>Live 3D radar — drag to rotate · scroll to zoom</div>
+    <div class="radar-layout">
+      <div id="radar3d-container"><canvas id="radar3d-canvas"></canvas></div>
+      <div class="radar-controls">
+        <div class="card-title" style="margin-bottom:10px">Toggle AI agents</div>
+        <div id="ai-toggles"></div>
+        <div class="radar-hint">Drag · Scroll to zoom · Click to toggle</div>
+        <div style="margin-top:14px;background:var(--bg3);border-radius:var(--radius-sm);padding:12px">
+          <div class="section-label">Dimensions</div>
+          <div style="font-size:11px;color:var(--text2);line-height:2">
+            🧠 Reasoning<br>💻 Coding<br>🎨 Creativity<br>⚡ Speed<br>🎯 Accuracy<br>🛡 Safety
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PERFORMANCE -->
+  <div id="tab-scores" class="section">
+    <div class="section-label">Dimension-by-dimension — 2026 benchmarks</div>
+    <div class="chart-grid-2">
+      <div class="chart-box"><div class="card-title">Reasoning</div><div style="height:220px;position:relative"><canvas id="chartReasoning" role="img" aria-label="Reasoning scores 2026.">Reasoning scores.</canvas></div></div>
+      <div class="chart-box"><div class="card-title">Coding ability</div><div style="height:220px;position:relative"><canvas id="chartCoding" role="img" aria-label="Coding scores 2026.">Coding scores.</canvas></div></div>
+      <div class="chart-box"><div class="card-title">Creativity & writing</div><div style="height:220px;position:relative"><canvas id="chartCreativity" role="img" aria-label="Creativity scores 2026.">Creativity scores.</canvas></div></div>
+      <div class="chart-box"><div class="card-title">Speed & responsiveness</div><div style="height:220px;position:relative"><canvas id="chartSpeed" role="img" aria-label="Speed scores 2026.">Speed scores.</canvas></div></div>
+      <div class="chart-box"><div class="card-title">Accuracy & factuality</div><div style="height:220px;position:relative"><canvas id="chartAccuracy" role="img" aria-label="Accuracy scores 2026.">Accuracy scores.</canvas></div></div>
+      <div class="chart-box"><div class="card-title">Safety & alignment</div><div style="height:220px;position:relative"><canvas id="chartSafety" role="img" aria-label="Safety scores 2026.">Safety scores.</canvas></div></div>
+    </div>
+  </div>
+
+  <!-- FEATURES -->
+  <div id="tab-features" class="section">
+    <div class="section-label">Feature availability — 2026 editions</div>
+    <div class="table-wrap" style="margin-bottom:24px">
+      <table>
+        <thead><tr><th>Feature</th><th>ChatGPT</th><th>Gemini</th><th>Perplexity</th><th>Grok</th><th>Claude</th><th>Copilot</th></tr></thead>
+        <tbody id="feature-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- USE CASES -->
+  <div id="tab-usecases" class="section">
+    <div class="section-label">Best AI by use case — 2026</div>
+    <div class="use-grid" id="use-cards"></div>
+    <div class="section-label">Strengths & weaknesses</div>
+    <div class="sw-grid" id="sw-cards"></div>
+  </div>
+
+  <!-- PRICING -->
+  <div id="tab-pricing" class="section">
+    <div class="section-label">2026 pricing & access</div>
+    <div class="price-grid" id="price-cards"></div>
+    <div class="section-label">Context window comparison</div>
+    <div class="card">
+      <div class="card-title">Max context window (tokens) — 2026</div>
+      <div class="card-sub">More tokens = longer documents you can process</div>
+      <div style="position:relative;height:260px"><canvas id="contextChart" role="img" aria-label="Context window comparison 2026.">Context windows by AI.</canvas></div>
+    </div>
+  </div>
+
+  <!-- CUSTOM COMPARE -->
+  <div id="tab-custom" class="section">
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-title">Weight the dimensions that matter to you</div>
+      <div class="card-sub">Drag sliders — your personalised ranking updates instantly</div>
+      <div class="slider-grid" id="sliders"></div>
+    </div>
+    <div class="section-label">Your personalised podium</div>
+    <div class="podium" id="podium"></div>
+    <div class="card">
+      <div class="card-title">Weighted ranking</div>
+      <div style="position:relative;height:280px"><canvas id="customChart" role="img" aria-label="Custom weighted ranking.">Custom weighted scores.</canvas></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── 2026 DATA ─────────────────────────────────────────────────────────────────
+const AIs = [
+  {
+    name:'ChatGPT', maker:'OpenAI — GPT-4.5 / o3', color:'#10b981',
+    scores:{reasoning:91,coding:93,creativity:90,speed:87,accuracy:90,safety:83}, overall:90,
+    badges:['GPT-4.5','o3 reasoning','Sora video','Operator'],
+    strengths:'Best image & video generation (Sora), Operator agents, massive plugin store, strong multimodal in 2026',
+    weaknesses:'Premium pricing for full access, o3 reasoning model very slow on complex tasks',
+    free:'Free (GPT-4o mini)', pro:'$20/mo Plus · $200/mo Pro', context:'256K', api:true,
+    trend:'+2', new26:'Sora video, Operator'
+  },
+  {
+    name:'Gemini', maker:'Google DeepMind — 2.5 Pro', color:'#4285F4',
+    scores:{reasoning:92,coding:88,creativity:86,speed:94,accuracy:91,safety:85}, overall:89,
+    badges:['2M tokens','Deep Research','Veo 3','Workspace'],
+    strengths:'Largest context window (2M tokens), Veo 3 video gen, Deep Research mode, fastest inference in 2026',
+    weaknesses:'Creative writing still trails Claude, privacy concerns for Google Workspace users',
+    free:'Free (1.5 Flash)', pro:'$22/mo Advanced', context:'2M', api:true,
+    trend:'+8', new26:'Veo 3 video, 2M context'
+  },
+  {
+    name:'Perplexity', maker:'Perplexity AI — Pro Search', color:'#20B2AA',
+    scores:{reasoning:80,coding:75,creativity:73,speed:90,accuracy:93,safety:80}, overall:81,
+    badges:['Deep Research','Live web','Citations','Finance'],
+    strengths:'Best real-time research with Deep Research mode, highest factual accuracy, financial data integration in 2026',
+    weaknesses:'Weaker creative & coding tasks, smaller context, no image or video generation',
+    free:'Free (limited)', pro:'$20/mo Pro', context:'128K', api:true,
+    trend:'+2', new26:'Deep Research, Finance data'
+  },
+  {
+    name:'Grok', maker:'xAI — Grok 3', color:'#60a5fa',
+    scores:{reasoning:86,coding:84,creativity:88,speed:89,accuracy:82,safety:70}, overall:83,
+    badges:['Grok 3','Aurora image','X real-time','Think mode'],
+    strengths:'Real-time X/Twitter intelligence, Aurora image gen, Think mode reasoning, most unfiltered responses',
+    weaknesses:'Lowest safety alignment, output quality inconsistent on complex factual tasks',
+    free:'Free (X users)', pro:'$30/mo SuperGrok', context:'256K', api:true,
+    trend:'+3', new26:'Grok 3, Aurora image, Think'
+  },
+  {
+    name:'Claude', maker:'Anthropic — Claude 4 Opus', color:'#f59e0b',
+    scores:{reasoning:96,coding:95,creativity:97,speed:86,accuracy:94,safety:98}, overall:93,
+    badges:['Claude 4','Computer use','200K ctx','Code agent'],
+    strengths:'Top 2026 reasoning, creativity & safety; Computer Use agents; best-in-class long document analysis; agentic coding',
+    weaknesses:'No native video generation, slower than Gemini at peak loads',
+    free:'Free (Sonnet 4)', pro:'$20/mo Pro · $25/mo Team', context:'200K', api:true,
+    trend:'+2', new26:'Claude 4, Computer Use agents'
+  },
+  {
+    name:'Copilot', maker:'Microsoft — Copilot+ 2026', color:'#a78bfa',
+    scores:{reasoning:85,coding:89,creativity:80,speed:85,accuracy:86,safety:90}, overall:85,
+    badges:['M365','Designer','Recall AI','Teams AI'],
+    strengths:'Deep M365 integration, Recall AI for PC memory, Designer image gen, enterprise compliance best-in-class',
+    weaknesses:'Full features require M365 subscription, less creative than Claude/ChatGPT',
+    free:'Free (basic)', pro:'$30/mo M365 Copilot', context:'128K', api:false,
+    trend:'+2', new26:'Recall AI, Copilot+ PC features'
+  }
+];
+
+const DIMS = ['reasoning','coding','creativity','speed','accuracy','safety'];
+const DIM_LABELS = ['Reasoning','Coding','Creativity','Speed','Accuracy','Safety'];
+
+const FEATURES = [
+  {name:'Web browsing',          vals:[true,true,true,true,false,true]},
+  {name:'Image generation',      vals:[true,true,false,true,false,true]},
+  {name:'Video generation',      vals:[true,true,false,false,false,false]},
+  {name:'Image understanding',   vals:[true,true,true,true,true,true]},
+  {name:'Code interpreter',      vals:[true,true,false,false,true,true]},
+  {name:'Voice / audio mode',    vals:[true,true,false,false,false,true]},
+  {name:'File uploads',          vals:[true,true,true,false,true,true]},
+  {name:'Context > 500K tokens', vals:[false,true,false,false,false,false]},
+  {name:'Computer / PC control', vals:[false,false,false,false,true,true]},
+  {name:'API access',            vals:[true,true,true,true,true,false]},
+  {name:'Memory / persistence',  vals:[true,true,true,false,true,true]},
+  {name:'Autonomous agents',     vals:[true,false,false,false,true,true]},
+  {name:'Real-time data',        vals:[true,true,true,true,false,true]},
+  {name:'Mobile app',            vals:[true,true,true,true,true,true]},
+  {name:'Enterprise compliance', vals:[true,true,false,false,true,true]},
+];
+
+const USE_CASES = [
+  {icon:'💻',title:'Software development',best:'Claude',runner:'ChatGPT'},
+  {icon:'🔍',title:'Live research & news',best:'Perplexity',runner:'Grok'},
+  {icon:'✍️',title:'Creative writing',best:'Claude',runner:'ChatGPT'},
+  {icon:'🧮',title:'Math & reasoning',best:'Claude',runner:'Gemini'},
+  {icon:'🏢',title:'Enterprise workflows',best:'Copilot',runner:'Gemini'},
+  {icon:'💬',title:'Casual chat & fun',best:'Grok',runner:'ChatGPT'},
+  {icon:'🎬',title:'Video generation',best:'ChatGPT',runner:'Gemini'},
+  {icon:'🔒',title:'Privacy & safety',best:'Claude',runner:'Copilot'},
+  {icon:'🤖',title:'Autonomous agents',best:'Claude',runner:'ChatGPT'},
+  {icon:'📊',title:'Financial research',best:'Perplexity',runner:'Gemini'},
+  {icon:'🖥️',title:'PC / desktop control',best:'Copilot',runner:'Claude'},
+  {icon:'🌐',title:'Multilingual tasks',best:'Gemini',runner:'ChatGPT'},
+];
+
+// ── CHART REGISTRY — prevents "canvas already in use" errors ─────────────────
+const chartRegistry = {};
+function safeChart(id, config) {
+  if (chartRegistry[id]) { chartRegistry[id].destroy(); delete chartRegistry[id]; }
+  const el = document.getElementById(id);
+  if (!el) return;
+  chartRegistry[id] = new Chart(el, config);
+  return chartRegistry[id];
+}
+
+// ── TAB SWITCHING ─────────────────────────────────────────────────────────────
+const TAB_IDS = ['overview','radar3d','scores','features','usecases','pricing','custom'];
+let perfInited = false, radar3dInited = false, pricingInited = false;
+
+function goTab(t) {
+  document.querySelectorAll('.tab').forEach((el,i) => el.classList.toggle('active', TAB_IDS[i] === t));
+  document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + t).classList.add('active');
+
+  // Lazy-init tabs that need the DOM visible for canvas sizing
+  if (t === 'scores' && !perfInited)   { perfInited = true;   setTimeout(initPerfCharts, 50); }
+  if (t === 'radar3d' && !radar3dInited){ radar3dInited = true; setTimeout(initRadar3D, 50); }
+  if (t === 'pricing' && !pricingInited){ pricingInited = true; setTimeout(initPricingChart, 50); }
+}
+
+// ── OVERVIEW CARDS ────────────────────────────────────────────────────────────
+function buildOverviewCards() {
+  const sorted = [...AIs].sort((a,b) => b.overall - a.overall);
+  document.getElementById('overview-cards').innerHTML = sorted.map((ai,i) => `
+    <div class="ai-card" style="border-top:3px solid ${ai.color}">
+      <div class="ai-header">
+        <div class="ai-avatar" style="background:${ai.color}22;color:${ai.color}">${ai.name[0]}</div>
+        <div class="ai-name-block">
+          <div class="name">${ai.name}${i===0?' <span style="font-size:10px;background:rgba(245,158,11,0.2);color:#f59e0b;padding:1px 6px;border-radius:4px;font-weight:700">TOP</span>':''}</div>
+          <div class="maker">${ai.maker}</div>
+        </div>
+      </div>
+      <div class="score-overall" style="color:${ai.color}">${ai.overall} <span class="trend-up">▲${ai.trend}</span></div>
+      ${DIMS.map(d=>`
+        <div class="dim-bar">
+          <div class="dim-row"><span class="dim-label">${d}</span><span class="dim-num">${ai.scores[d]}</span></div>
+          <div class="bar-bg"><div class="bar-fill" style="width:${ai.scores[d]}%;background:${ai.color}"></div></div>
+        </div>`).join('')}
+      <div class="badges">${ai.badges.map(b=>`<span class="badge" style="background:${ai.color}1a;color:${ai.color}">${b}</span>`).join('')}</div>
+      <div style="margin-top:8px;font-size:10px;color:var(--text3)">✦ New 2026: <span style="color:var(--text2)">${ai.new26}</span></div>
+    </div>`).join('');
+}
+
+function initOverviewBar() {
+  const sorted = [...AIs].sort((a,b) => b.overall - a.overall);
+  safeChart('overviewBar', {
+    type:'bar',
+    data:{ labels:sorted.map(a=>a.name), datasets:[{data:sorted.map(a=>a.overall), backgroundColor:sorted.map(a=>a.color+'bb'), borderRadius:6, borderSkipped:false}] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+      scales:{ y:{min:60,max:100,grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#555a6e',font:{size:11}}},
+               x:{grid:{display:false},ticks:{color:'#8b90a0',font:{size:12}}} } }
+  });
+}
+
+// ── PERFORMANCE CHARTS — lazy, after tab is visible ───────────────────────────
+function initPerfCharts() {
+  DIMS.forEach((d,i) => {
+    const ids = ['chartReasoning','chartCoding','chartCreativity','chartSpeed','chartAccuracy','chartSafety'];
+    const sorted = [...AIs].sort((a,b) => b.scores[d] - a.scores[d]);
+    safeChart(ids[i], {
+      type:'bar',
+      data:{ labels:sorted.map(a=>a.name), datasets:[{data:sorted.map(a=>a.scores[d]), backgroundColor:sorted.map(a=>a.color+'cc'), borderRadius:4, borderSkipped:false}] },
+      options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+        scales:{ x:{min:60,max:100,grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#555a6e',font:{size:10}}},
+                 y:{grid:{display:false},ticks:{color:'#8b90a0',font:{size:11}}} } }
+    });
+  });
+}
+
+// ── FEATURE TABLE ─────────────────────────────────────────────────────────────
+function buildFeatureTable() {
+  document.getElementById('feature-tbody').innerHTML = FEATURES.map(f=>`<tr>
+    <td class="feat-name">${f.name}</td>
+    ${f.vals.map(v=>`<td style="text-align:center">${v?'<span class="check">✓</span>':'<span class="cross">✗</span>'}</td>`).join('')}
+  </tr>`).join('');
+}
+
+// ── USE CASES ─────────────────────────────────────────────────────────────────
+function buildUseCases() {
+  document.getElementById('use-cards').innerHTML = USE_CASES.map(u=>`
+    <div class="use-card">
+      <div class="use-icon">${u.icon}</div>
+      <div class="use-title">${u.title}</div>
+      <div class="use-best">Best: <strong>${u.best}</strong><br><span style="color:var(--text3)">Runner-up: ${u.runner}</span></div>
+    </div>`).join('');
+  document.getElementById('sw-cards').innerHTML = AIs.map(ai=>`
+    <div class="sw-card">
+      <div class="sw-name"><span class="sw-dot" style="background:${ai.color}"></span>${ai.name}</div>
+      <div class="sw-sec" style="color:#10b981">Strengths</div>
+      <div class="sw-text">${ai.strengths}</div>
+      <div class="sw-sec" style="color:#ef4444">Weaknesses</div>
+      <div class="sw-text">${ai.weaknesses}</div>
+    </div>`).join('');
+}
+
+// ── PRICING ───────────────────────────────────────────────────────────────────
+function buildPricingCards() {
+  document.getElementById('price-cards').innerHTML = AIs.map(ai=>`
+    <div class="price-card" style="border-top:3px solid ${ai.color}">
+      <div class="price-name">${ai.name}</div>
+      <div class="price-maker">${ai.maker}</div>
+      <div class="price-row"><span class="lbl">Free tier</span><span class="val"><span class="pill pill-green">${ai.free}</span></span></div>
+      <div class="price-row"><span class="lbl">Paid plan</span><span class="val" style="font-size:11px">${ai.pro}</span></div>
+      <div class="price-row"><span class="lbl">Context</span><span class="val"><span class="pill pill-purple">${ai.context}</span></span></div>
+      <div class="price-row"><span class="lbl">API</span><span class="val">${ai.api?'<span class="check">✓</span>':'<span class="cross">✗</span>'}</span></div>
+    </div>`).join('');
+}
+
+function initPricingChart() {
+  const ctxMap = {'128K':128000,'256K':256000,'200K':200000,'2M':2000000};
+  safeChart('contextChart', {
+    type:'bar',
+    data:{ labels:AIs.map(a=>a.name), datasets:[{data:AIs.map(a=>ctxMap[a.context]||128000), backgroundColor:AIs.map(a=>a.color+'cc'), borderRadius:6, borderSkipped:false}] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false},
+      tooltip:{callbacks:{label:ctx=>` ${AIs[ctx.dataIndex].context} tokens`}}},
+      scales:{ y:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#555a6e',font:{size:11},callback:v=>v>=1000000?(v/1000000)+'M':v>=1000?(v/1000)+'K':v}},
+               x:{grid:{display:false},ticks:{color:'#8b90a0',font:{size:12}}} } }
+  });
+}
+
+// ── CUSTOM COMPARE ────────────────────────────────────────────────────────────
+function buildCustom() {
+  document.getElementById('sliders').innerHTML = DIMS.map((d,i)=>`
+    <div class="slider-row">
+      <label>${DIM_LABELS[i]}</label>
+      <input type="range" min="0" max="10" value="5" step="1" id="w_${d}" oninput="updateCustom()">
+      <span class="slider-val" id="wv_${d}">5</span>
+    </div>`).join('');
+  safeChart('customChart', {
+    type:'bar',
+    data:{ labels:[], datasets:[{data:[], backgroundColor:[], borderRadius:6, borderSkipped:false}] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+      scales:{ y:{min:0,max:100,grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#555a6e',font:{size:11}}},
+               x:{grid:{display:false},ticks:{color:'#8b90a0',font:{size:12}}} } }
+  });
+  updateCustom();
+}
+
+function updateCustom() {
+  const w = {};
+  DIMS.forEach(d => {
+    const v = parseFloat(document.getElementById('w_'+d).value);
+    w[d] = v;
+    document.getElementById('wv_'+d).textContent = v;
+  });
+  const total = DIMS.reduce((s,d)=>s+w[d],0)||1;
+  const scored = AIs.map(ai=>({...ai, ws:Math.round(DIMS.reduce((s,d)=>s+ai.scores[d]*w[d],0)/total)}))
+                    .sort((a,b)=>b.ws-a.ws);
+  const ch = chartRegistry['customChart'];
+  if (ch) {
+    ch.data.labels = scored.map(a=>a.name);
+    ch.data.datasets[0].data = scored.map(a=>a.ws);
+    ch.data.datasets[0].backgroundColor = scored.map(a=>a.color+'cc');
+    ch.update();
+  }
+  document.getElementById('podium').innerHTML = scored.slice(0,3).map((ai,i)=>`
+    <div class="podium-card" style="border-top:3px solid ${ai.color}">
+      <div class="podium-rank">${['🥇','🥈','🥉'][i]}</div>
+      <div class="podium-name" style="color:${ai.color}">${ai.name}</div>
+      <div class="podium-score">Score: ${ai.ws}</div>
+    </div>`).join('');
+}
+
+// ── 3D RADAR ──────────────────────────────────────────────────────────────────
+let radarVisible = AIs.map(()=>true);
+let scene, camera, renderer3d, radarGroup;
+let isDragging=false, prevMouse={x:0,y:0};
+let spherical={theta:0.4, phi:1.1, r:5};
+
+function initRadar3D() {
+  const container = document.getElementById('radar3d-container');
+  const canvas = document.getElementById('radar3d-canvas');
+  const W = container.clientWidth, H = container.clientHeight;
+
+  renderer3d = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
+  renderer3d.setSize(W, H);
+  renderer3d.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  renderer3d.setClearColor(0x111318,1);
+
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(55, W/H, 0.1, 100);
+  updateCamera3D();
+
+  scene.add(new THREE.AmbientLight(0xffffff,0.4));
+  const dl = new THREE.DirectionalLight(0xffffff,0.8);
+  dl.position.set(3,5,4);
+  scene.add(dl);
+
+  buildRadar3D();
+  buildToggles();
+  attachEvents3D(canvas, container);
+  animate3D();
+}
+
+function buildRadar3D() {
+  if (radarGroup) scene.remove(radarGroup);
+  radarGroup = new THREE.Group();
+  scene.add(radarGroup);
+
+  const N=DIMS.length, MAX=100, MIN=60, LEVELS=4, R=2;
+
+  // Grid rings
+  for (let lv=1;lv<=LEVELS;lv++) {
+    const f=lv/LEVELS, pts=[];
+    for(let i=0;i<=N;i++){const a=(i/N)*Math.PI*2-Math.PI/2; pts.push(new THREE.Vector3(Math.cos(a)*f*R,0,Math.sin(a)*f*R));}
+    radarGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({color:0x334155,transparent:true,opacity:0.5})));
+    const spr=makeTextSprite(String(Math.round(MIN+(MAX-MIN)*f)),0.18,'#64748b');
+    spr.position.set(f*R+0.1,0.05,0); radarGroup.add(spr);
+  }
+
+  // Axes & labels
+  for(let i=0;i<N;i++){
+    const a=(i/N)*Math.PI*2-Math.PI/2;
+    const end=new THREE.Vector3(Math.cos(a)*R,0,Math.sin(a)*R);
+    radarGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0),end]), new THREE.LineBasicMaterial({color:0x475569,transparent:true,opacity:0.6})));
+    const spr=makeTextSprite(DIM_LABELS[i],0.22,'#94a3b8');
+    spr.position.set(Math.cos(a)*(R+0.38),0.05,Math.sin(a)*(R+0.38)); radarGroup.add(spr);
+  }
+
+  // Outer ring
+  const fpts=[];
+  for(let i=0;i<=64;i++){const a=i/64*Math.PI*2; fpts.push(new THREE.Vector3(Math.cos(a)*R,0,Math.sin(a)*R));}
+  radarGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(fpts), new THREE.LineBasicMaterial({color:0x1e293b,transparent:true,opacity:0.8})));
+
+  // AI surfaces
+  AIs.forEach((ai,idx)=>{
+    if(!radarVisible[idx]) return;
+    const col=new THREE.Color(ai.color);
+    const yOff=idx*0.02;
+
+    // Filled polygon
+    const pts2d=DIMS.map((d,i)=>{
+      const t=(ai.scores[d]-MIN)/(MAX-MIN);
+      const a=(i/N)*Math.PI*2-Math.PI/2;
+      return new THREE.Vector2(Math.cos(a)*t*R, Math.sin(a)*t*R);
+    });
+    const shape=new THREE.Shape(pts2d);
+    const shapeGeom=new THREE.ShapeGeometry(shape);
+    const pos=shapeGeom.attributes.position;
+    for(let v=0;v<pos.count;v++){const x=pos.getX(v),y=pos.getY(v); pos.setXYZ(v,x,yOff,y);}
+    pos.needsUpdate=true;
+    shapeGeom.computeVertexNormals();
+    radarGroup.add(new THREE.Mesh(shapeGeom, new THREE.MeshPhongMaterial({color:col,transparent:true,opacity:0.22,side:THREE.DoubleSide,depthWrite:false})));
+
+    // Outline
+    const outPts=DIMS.map((d,i)=>{const t=(ai.scores[d]-MIN)/(MAX-MIN);const a=(i/N)*Math.PI*2-Math.PI/2;return new THREE.Vector3(Math.cos(a)*t*R,yOff+0.01,Math.sin(a)*t*R);});
+    outPts.push(outPts[0].clone());
+    radarGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(outPts), new THREE.LineBasicMaterial({color:col,linewidth:2})));
+
+    // Vertex spheres
+    DIMS.forEach((d,i)=>{
+      const t=(ai.scores[d]-MIN)/(MAX-MIN);
+      const a=(i/N)*Math.PI*2-Math.PI/2;
+      const s=new THREE.Mesh(new THREE.SphereGeometry(0.055,8,8), new THREE.MeshPhongMaterial({color:col,emissive:col,emissiveIntensity:0.3}));
+      s.position.set(Math.cos(a)*t*R,yOff+0.015,Math.sin(a)*t*R);
+      radarGroup.add(s);
+    });
+
+    // Score columns
+    DIMS.forEach((d,i)=>{
+      const t=(ai.scores[d]-MIN)/(MAX-MIN);
+      const a=(i/N)*Math.PI*2-Math.PI/2;
+      const h=t*0.18*(idx+1);
+      const cyl=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.03,h,8), new THREE.MeshPhongMaterial({color:col,transparent:true,opacity:0.25}));
+      cyl.position.set(Math.cos(a)*t*R,yOff+h/2,Math.sin(a)*t*R);
+      radarGroup.add(cyl);
+    });
+  });
+
+  // Y axis
+  radarGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0),new THREE.Vector3(0,0.6,0)]), new THREE.LineBasicMaterial({color:0x334155,transparent:true,opacity:0.4})));
+}
+
+function makeTextSprite(text, size, color) {
+  const c=document.createElement('canvas'); c.width=256; c.height=64;
+  const ctx=c.getContext('2d');
+  ctx.fillStyle=color;
+  ctx.font=`bold ${Math.round(size*120)}px 'Segoe UI',sans-serif`;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(text,128,32);
+  const tex=new THREE.CanvasTexture(c);
+  const spr=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true}));
+  spr.scale.set(size*4,size,1);
+  return spr;
+}
+
+function updateCamera3D() {
+  const {theta,phi,r}=spherical;
+  camera.position.set(r*Math.sin(phi)*Math.cos(theta), r*Math.cos(phi), r*Math.sin(phi)*Math.sin(theta));
+  camera.lookAt(0,0,0);
+}
+
+function animate3D() {
+  requestAnimationFrame(animate3D);
+  if (!isDragging) { spherical.theta+=0.004; updateCamera3D(); }
+  renderer3d.render(scene, camera);
+}
+
+function attachEvents3D(canvas, container) {
+  canvas.addEventListener('mousedown', e=>{isDragging=true; prevMouse={x:e.clientX,y:e.clientY};});
+  window.addEventListener('mouseup', ()=>{isDragging=false;});
+  window.addEventListener('mousemove', e=>{
+    if(!isDragging) return;
+    const dx=(e.clientX-prevMouse.x)*0.005, dy=(e.clientY-prevMouse.y)*0.005;
+    spherical.theta+=dx; spherical.phi=Math.max(0.2,Math.min(Math.PI*0.9,spherical.phi+dy));
+    prevMouse={x:e.clientX,y:e.clientY}; updateCamera3D();
+  });
+  canvas.addEventListener('wheel', e=>{
+    e.preventDefault();
+    spherical.r=Math.max(2.5,Math.min(9,spherical.r+e.deltaY*0.005));
+    updateCamera3D();
+  },{passive:false});
+  let lt;
+  canvas.addEventListener('touchstart', e=>{isDragging=true; lt={x:e.touches[0].clientX,y:e.touches[0].clientY};},{passive:true});
+  canvas.addEventListener('touchend', ()=>{isDragging=false;},{passive:true});
+  canvas.addEventListener('touchmove', e=>{
+    if(!isDragging) return;
+    const dx=(e.touches[0].clientX-lt.x)*0.005, dy=(e.touches[0].clientY-lt.y)*0.005;
+    spherical.theta+=dx; spherical.phi=Math.max(0.2,Math.min(Math.PI*0.9,spherical.phi+dy));
+    lt={x:e.touches[0].clientX,y:e.touches[0].clientY}; updateCamera3D();
+  },{passive:true});
+  window.addEventListener('resize', ()=>{
+    const W=container.clientWidth, H=container.clientHeight;
+    renderer3d.setSize(W,H); camera.aspect=W/H; camera.updateProjectionMatrix();
+  });
+}
+
+function buildToggles() {
+  document.getElementById('ai-toggles').innerHTML = AIs.map((ai,i)=>`
+    <div class="ai-toggle" id="tog${i}" onclick="toggleAI(${i})">
+      <span class="toggle-dot" style="background:${ai.color}"></span>
+      <span class="toggle-name">${ai.name}</span>
+      <span class="toggle-score">${ai.overall}</span>
+    </div>`).join('');
+}
+
+function toggleAI(i) {
+  radarVisible[i]=!radarVisible[i];
+  document.getElementById('tog'+i).classList.toggle('off',!radarVisible[i]);
+  buildRadar3D();
+}
+
+// ── BOOT ──────────────────────────────────────────────────────────────────────
+buildOverviewCards();
+initOverviewBar();
+buildFeatureTable();
+buildUseCases();
+buildPricingCards();
+buildCustom();
+</script>
+</body>
+</html>
